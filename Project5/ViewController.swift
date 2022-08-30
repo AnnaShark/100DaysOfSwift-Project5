@@ -15,6 +15,7 @@ class ViewController: UITableViewController {
         super.viewDidLoad()
         
         navigationItem.rightBarButtonItem = UIBarButtonItem(barButtonSystemItem: .add, target: self, action: #selector(promptForAnswer))
+        navigationItem.leftBarButtonItem = UIBarButtonItem(barButtonSystemItem: .refresh, target: self, action: #selector(startGame))
         
         if let startWordsURL = Bundle.main.url(forResource: "start", withExtension: "txt"){
             if let startWords = try? String(contentsOf: startWordsURL) {
@@ -28,7 +29,7 @@ class ViewController: UITableViewController {
 
     }
     
-    func startGame() {
+    @objc func startGame() {
         title = allWords.randomElement()
         usedWords.removeAll(keepingCapacity: true)
         tableView.reloadData()
@@ -60,13 +61,12 @@ class ViewController: UITableViewController {
     
     func submit (_ answer: String) {
         let lowAnswer = answer.lowercased()
-        let errorTitle: String
-        let errorMessage: String
+        print("\(lowAnswer) from submit" )
         
         if isPossible(word: lowAnswer) {
             if isOriginal(word: lowAnswer) {
                 if isReal(word: lowAnswer) {
-                    usedWords.insert(answer, at: 0)
+                    usedWords.insert(lowAnswer, at: 0)
                     tableView.beginUpdates()
                     let indexPath = IndexPath(row: 0, section: 0)
                     tableView.insertRows(at: [indexPath], with: .automatic)
@@ -74,24 +74,23 @@ class ViewController: UITableViewController {
                     
                     return
                 } else {
-                    errorTitle = "Not recognised"
-                    errorMessage = "This word does not exist in Enligh"
+                    showErrorMessage(title: "Not recognised", message: "Word does not exist in English or is shorter than 3 letters")
                 }
             } else {
-            errorTitle = "Already used"
-            errorMessage = "You cannot repeat words"
+                showErrorMessage(title: "Already used", message: "You cannot repeat words")
             }
         } else {
-            errorTitle = "Usage of impossible letters"
-            errorMessage = "You cannot spell that word from \(title!.lowercased())"
+            showErrorMessage(title: "Impossible word", message: "Impossible to spell that word from \(title!.lowercased()). Repetition of the entire start word is not allowed")
         }
-        let ac = UIAlertController(title: errorTitle, message: errorMessage, preferredStyle: .alert)
-        ac.addAction(UIAlertAction(title: "OK", style: .default))
-        present(ac,animated: true)
     }
     
     func isPossible(word: String) -> Bool{
         guard var tempWord = title?.lowercased() else {return false}
+        print("\(word) from isPossible")
+        
+        if word == tempWord {
+            return false
+        }
         
         for letter in word {
             if let position = tempWord.firstIndex(of: letter) {
@@ -106,13 +105,31 @@ class ViewController: UITableViewController {
     
     
     func isOriginal(word: String) -> Bool{
+        print("\(word) from isOriginal")
+        for item in usedWords {
+            print(item)
+        }
         return !usedWords.contains(word)    }
     
     func isReal(word: String) -> Bool{
-        let checker = UITextChecker()
-        let range = NSRange(location: 0, length: word.utf16.count)
-        let misspelledRange = checker.rangeOfMisspelledWord(in: word, range: range, startingAt: 0, wrap: false, language: "en")
-        return misspelledRange.location == NSNotFound
+        print("\(word) from isReal" )
+        if word.count < 3 {
+            return false
+        } else {
+            let checker = UITextChecker()
+            let range = NSRange(location: 0, length: word.utf16.count)
+            let misspelledRange = checker.rangeOfMisspelledWord(in: word, range: range, startingAt: 0, wrap: false, language: "en")
+            return misspelledRange.location == NSNotFound
+        }
     }
+    
+    func showErrorMessage(title: String, message: String ) {
+        let ac = UIAlertController(title: title, message: message, preferredStyle: .alert)
+        ac.addAction(UIAlertAction(title: "OK", style: .default))
+        present(ac,animated: true)
+        
+    }
+
+
 }
 
